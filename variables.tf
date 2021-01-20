@@ -1,27 +1,25 @@
 #VARIABLES
 
 variable "ingress_cidr_blocks" {
-  description = "Ingress CIDR block for instances"
-  type        = string
-  default     = "0.0.0.0/0"
+  description = "List of management interface ingress IPv4/IPv6 CIDR ranges."
+  type        = list(string)
 }
 
-variable "vm_count" {
+variable "instance_name" {
   type        = string
-  description = "Number of STCv VM instances to create."
-  default     = "2"
+  description = "Name assigned to the instance.  An instance number will be appended to the name"
+  default     = "stcv"
 }
 
-variable "vm_size" {
+variable "instance_count" {
+  type        = string
+  description = "Number of STCv instances to create.."
+}
+
+variable "instance_size" {
   type        = string
   description = "Specifies the size of the STCv VM instance."
   default     = "Standard_DS3_v2"
-}
-
-variable "vm_hostname" {
-  type        = string
-  description = "Specifies the name of STCv VM instance"
-  default     = "STCv-VM"
 }
 
 variable "resource_group_name" {
@@ -36,34 +34,25 @@ variable "resource_group_location" {
   default     = "West US 2"
 }
 
-variable "vnet" {
+variable "virtual_network" {
   type        = string
-  description = "User provided vnet"
-  default     = "STCv"
+  description = "User provided virtual network"
 }
 
-variable "mgmt_subnet" {
+variable "mgmt_plane_subnet" {
   type        = string
-  description = "User provided management subnet"
-  default     = "stcv-mgmt"
+  description = "Management public Azure subnet name"
 }
 
-variable "test_subnet" {
+variable "test_plane_subnet" {
   type        = string
-  description = "User provided test subnet"
-  default     = "stcv-test"
+  description = "Test or data plane Azure subnet name"
 }
 
-variable "enable_accelerated_networking_flag" {
-  description = "enable accelerated networking flag"
+variable "enable_accelerated_networking" {
+  description = "Flag to enable or disable accelerated networking on network interface"
   type        = string
   default     = "true"
-}
-
-variable "os_disk_name" {
-  description = "Name of the os disk"
-  type        = string
-  default     = "stcv-osdisk"
 }
 
 variable "admin_username" {
@@ -73,31 +62,17 @@ variable "admin_username" {
 }
 
 variable "public_key" {
-  description = "Contents of public key."
+  description = "File path to public key."
   type        = string
   default     = "~/.ssh/id_rsa.pub"
 }
 
-variable "marketplace_publishername" {
-  type        = string
-  description = "Name of the publisher of the image"
-  default     = "spirentcommunications1594084187199"
-}
-
-variable "marketplace_offer" {
-  type        = string
-  description = "The name of the offer"
-  default     = "testcenter_virtual"
-}
-
-variable "marketplace_sku" {
-  type        = string
-  description = "Image sku to apply "
-  default     = "testcentervirtual"
-}
-
 variable "marketplace_version" {
   type        = string
-  description = "Version of the STCv image to apply"
-  default     = "5.15.0106"
+  description = "The Spirent TestCenter Virtual image version example 5.15.0106. When not specified, the latest marketplace image will be used. "
+}
+
+variable "user_data_file" {
+  description = "File path name containing AWS user data for the instance.  Spirent TestCenter Virtual cloud-init configuration parameters are supported."
+  type        = string
 }

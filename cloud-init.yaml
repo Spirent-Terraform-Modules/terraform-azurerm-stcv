@@ -1,15 +1,4 @@
 #cloud-config
-# uncomment below spirent block to set 1G speed
 spirent:
   driver: dpdk
   speed: 1G
-
-# uncomment below spirent block to set 10G speed 
-#spirent:
-#  driver: dpdk
-#  speed: 10G
-
-# uncomment below spirent block to set 25G speed 
-#spirent:
-#  driver: dpdk
-#  speed: 25G

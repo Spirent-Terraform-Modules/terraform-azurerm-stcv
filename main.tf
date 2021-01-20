@@ -1,75 +1,61 @@
 provider "azurerm" {
-  version                      = "2.37.0"
-  skip_provider_registration   = "true"
+  version                    = ">=2.37.0"
+  skip_provider_registration = "true"
   features {}
 }
 
-# Get existing subnet details
-data "azurerm_subnet" "mgmt" {
-  name                 = var.mgmt_subnet
-  virtual_network_name = var.vnet
-  resource_group_name  = var.resource_group_name
-}
-
-data "azurerm_subnet" "test" {
-  name                 = var.test_subnet
-  virtual_network_name = var.vnet
-  resource_group_name  = var.resource_group_name
-}
-
-resource "azurerm_public_ip" "stcv_publicip" {
-  count               = var.vm_count
-  name                = "publicip-${var.vm_hostname}-${count.index}"
+resource "azurerm_public_ip" "stcv" {
+  count               = var.instance_count
+  name                = "publicip-${var.instance_name}-${count.index}"
   location            = var.resource_group_location
   resource_group_name = var.resource_group_name
   allocation_method   = "Dynamic"
 }
 
-resource "azurerm_network_security_group" "mgmt" {
-  name                = "mgmtnsg-${var.vm_hostname}"
+resource "azurerm_network_security_group" "mgmt_plane" {
+  name                = "nsg-mgmt-${var.instance_name}"
   location            = var.resource_group_location
   resource_group_name = var.resource_group_name
 
-  # SSH rule
   security_rule {
-    name                       = "SSH"
+    name                       = "ssh"
     priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = var.ingress_cidr_blocks
+    source_address_prefixes    = var.ingress_cidr_blocks
     destination_address_prefix = "*"
   }
-  # Chassis
+
   security_rule {
-    name                       = "Chassis"
+    name                       = "chassis"
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "40004"
-    source_address_prefix      = var.ingress_cidr_blocks
+    source_address_prefixes    = var.ingress_cidr_blocks
     destination_address_prefix = "*"
   }
 
   security_rule {
-    name                       = "stcvport"
+    name                       = "stc-app"
     priority                   = 120
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "51204"
-    source_address_prefix      = var.ingress_cidr_blocks
+    source_address_prefixes    = var.ingress_cidr_blocks
     destination_address_prefix = "*"
   }
 }
 
-resource "azurerm_network_security_group" "test" {
-  name                = "testnsg-${var.vm_hostname}"
+resource "azurerm_network_security_group" "test_plane" {
+  name                = "nsg-test-${var.instance_name}"
   location            = var.resource_group_location
   resource_group_name = var.resource_group_name
 
@@ -82,60 +68,89 @@ resource "azurerm_network_security_group" "test" {
     protocol                   = "*"
     source_port_range          = "*"
     destination_port_range     = "*"
-    source_address_prefix      = var.ingress_cidr_blocks
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "bll_ephemeral"
+    description                = "All outbound traffic back to BLL"
+    priority                   = 101
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "49100-65535"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "ntp"
+    description                = "NTP server"
+    priority                   = 110
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Udp"
+    source_port_range          = "*"
+    destination_port_range     = "123"
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 }
 
-resource "azurerm_network_interface" "mgmt_nic" {
-  count               = var.vm_count
-  name                = "mgmtnic-${var.vm_hostname}-${count.index}"
+resource "azurerm_network_interface" "mgmt_plane" {
+  count               = var.instance_count
+  name                = "nic-mgmt-${var.instance_name}-${count.index}"
   location            = var.resource_group_location
   resource_group_name = var.resource_group_name
 
   ip_configuration {
-    name                          = "mgmtipconfig-${var.vm_hostname}-${count.index}"
-    subnet_id                     = data.azurerm_subnet.mgmt.id
+    name                          = "ipc-mgmt-${var.instance_name}-${count.index}"
+    subnet_id                     = var.mgmt_subnet
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = "${element(azurerm_public_ip.stcv_publicip.*.id, count.index)}"
+    public_ip_address_id          = "${element(azurerm_public_ip.stcv.*.id, count.index)}"
   }
 }
 
-resource "azurerm_network_interface" "test_nic" {
-  count                         = var.vm_count
-  name                          = "testnic-${var.vm_hostname}-${count.index}"
+resource "azurerm_network_interface" "test_plane" {
+  count                         = var.instance_count
+  name                          = "nic-test-${var.instance_name}-${count.index}"
   location                      = var.resource_group_location
   resource_group_name           = var.resource_group_name
-  enable_accelerated_networking = var.enable_accelerated_networking_flag
+  enable_accelerated_networking = var.enable_accelerated_networking
 
   ip_configuration {
-    name                          = "testipconfig-${var.vm_hostname}-${count.index}"
-    subnet_id                     = data.azurerm_subnet.test.id
+    name                          = "ipc-test-${var.instance_name}-${count.index}"
+    subnet_id                     = var.test_subnet
     private_ip_address_allocation = "Dynamic"
   }
 }
 
-resource "azurerm_network_interface_security_group_association" "mgmtnsg_association" {
-  count                     = var.vm_count
-  network_interface_id      = "${element(azurerm_network_interface.mgmt_nic.*.id, count.index)}"
-  network_security_group_id = azurerm_network_security_group.mgmt.id
+resource "azurerm_network_interface_security_group_association" "mgmt_plane" {
+  count                     = var.instance_count
+  network_interface_id      = "${element(azurerm_network_interface.mgmt_plane.*.id, count.index)}"
+  network_security_group_id = azurerm_network_security_group.mgmt_plane.id
 }
 
-resource "azurerm_network_interface_security_group_association" "testnsg_association" {
-  count                     = var.vm_count
-  network_interface_id      = "${element(azurerm_network_interface.test_nic.*.id, count.index)}"
-  network_security_group_id = azurerm_network_security_group.test.id
+resource "azurerm_network_interface_security_group_association" "test_plane" {
+  count                     = var.instance_count
+  network_interface_id      = "${element(azurerm_network_interface.test_plane.*.id, count.index)}"
+  network_security_group_id = azurerm_network_security_group.test_plane.id
 }
 
+data "template_file" "user_data" {
+  template = file(var.user_data_file)
+}
 
 # Create STCv VMs
 resource "azurerm_linux_virtual_machine" "stcv" {
-  count                 = var.vm_count
-  name                  = "${var.vm_hostname}${count.index}"
+  count                 = var.instance_count
+  name                  = "${var.instance_name}${count.index}"
   location              = var.resource_group_location
   resource_group_name   = var.resource_group_name
-  network_interface_ids = ["${element(azurerm_network_interface.mgmt_nic.*.id, count.index)}", "${element(azurerm_network_interface.test_nic.*.id, count.index)}"]
-  size                  = var.vm_size
+  network_interface_ids = ["${element(azurerm_network_interface.mgmt_plane.*.id, count.index)}", "${element(azurerm_network_interface.test_plane.*.id, count.index)}"]
+  size                  = var.instance_size
   admin_username        = var.admin_username
 
   admin_ssh_key {
@@ -143,25 +158,25 @@ resource "azurerm_linux_virtual_machine" "stcv" {
     public_key = file(var.public_key)
   }
 
-  custom_data = base64encode(file("cloud-init.yaml"))
+  custom_data = base64encode(file(var.user_data_file))
 
   plan {
-    name      = var.marketplace_sku
-    publisher = var.marketplace_publishername
-    product   = var.marketplace_offer
+    name      = "testcentervirtual"
+    publisher = "spirentcommunications1594084187199"
+    product   = "testcenter_virtual"
   }
 
   os_disk {
-    name                 = "${var.vm_hostname}${var.os_disk_name}${count.index}"
+    name                 = "osdisk-${var.instance_name}-${count.index}"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
 
   source_image_reference {
-    publisher = var.marketplace_publishername
-    offer     = var.marketplace_offer
-    sku       = var.marketplace_sku
-    version   = var.marketplace_version
+    publisher = "spirentcommunications1594084187199"
+    offer     = "testcenter_virtual"
+    sku       = "testcentervirtual"
+    version   = var.marketplace_version != "" ? var.marketplace_version : "latest"
   }
 }
 

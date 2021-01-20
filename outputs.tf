@@ -1,16 +1,16 @@
 # OUTPUTS
 
-output "vm_public_ip" {
+output "instance_public_ips" {
   description = "List of public IP addresses assigned to the instances, if applicable"
   value       = azurerm_linux_virtual_machine.stcv.*.public_ip_address
 }
 
-output "vm_private_ip" {
+output "instance_private_ips" {
   description = "List of private IP addresses assigned to the instances, if applicable"
   value       = azurerm_linux_virtual_machine.stcv.*.private_ip_address
 }
 
-output "id" {
+output "instance_ids" {
   description = "List of IDs of instances"
   value       = azurerm_linux_virtual_machine.stcv.*.id
 }
