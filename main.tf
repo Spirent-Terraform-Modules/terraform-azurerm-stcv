@@ -30,7 +30,7 @@ resource "azurerm_network_security_group" "mgmt_plane" {
   }
 
   security_rule {
-    name                       = "chassis"
+    name                       = "stc-chassis"
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
@@ -42,7 +42,7 @@ resource "azurerm_network_security_group" "mgmt_plane" {
   }
 
   security_rule {
-    name                       = "stc-app"
+    name                       = "stc-portgroup"
     priority                   = 120
     direction                  = "Inbound"
     access                     = "Allow"
@@ -52,28 +52,9 @@ resource "azurerm_network_security_group" "mgmt_plane" {
     source_address_prefixes    = var.ingress_cidr_blocks
     destination_address_prefix = "*"
   }
-}
-
-resource "azurerm_network_security_group" "test_plane" {
-  name                = "nsg-test-${var.instance_name}"
-  location            = var.resource_group_location
-  resource_group_name = var.resource_group_name
-
-  # all traffic
-  security_rule {
-    name                       = "all-traffic"
-    priority                   = 100
-    direction                  = "Outbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "*"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "bll_ephemeral"
+  
+   security_rule {
+    name                       = "bll-ephemeral"
     description                = "All outbound traffic back to BLL"
     priority                   = 101
     direction                  = "Outbound"
@@ -99,6 +80,25 @@ resource "azurerm_network_security_group" "test_plane" {
   }
 }
 
+resource "azurerm_network_security_group" "test_plane" {
+  name                = "nsg-test-${var.instance_name}"
+  location            = var.resource_group_location
+  resource_group_name = var.resource_group_name
+
+  # all traffic
+  security_rule {
+    name                       = "all-traffic"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
 resource "azurerm_network_interface" "mgmt_plane" {
   count               = var.instance_count
   name                = "nic-mgmt-${var.instance_name}-${count.index}"
@@ -107,7 +107,7 @@ resource "azurerm_network_interface" "mgmt_plane" {
 
   ip_configuration {
     name                          = "ipc-mgmt-${var.instance_name}-${count.index}"
-    subnet_id                     = var.mgmt_subnet
+    subnet_id                     = var.mgmt_plane_subnet_id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = "${element(azurerm_public_ip.stcv.*.id, count.index)}"
   }
@@ -122,7 +122,7 @@ resource "azurerm_network_interface" "test_plane" {
 
   ip_configuration {
     name                          = "ipc-test-${var.instance_name}-${count.index}"
-    subnet_id                     = var.test_subnet
+    subnet_id                     = var.test_plane_subnet_id
     private_ip_address_allocation = "Dynamic"
   }
 }

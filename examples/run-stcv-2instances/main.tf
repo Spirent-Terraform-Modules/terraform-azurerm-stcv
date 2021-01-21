@@ -1,4 +1,11 @@
-## Example:This example deploys a Spirent TestCenter Virtual Machine from an Azure Marketplace image.
+## Example : This Terraform module deploys Spirent TestCenter Virtual Machine(s) from an Azure Marketplace image.
+# The example requires the user to provide an already existing virtual network , management subnet, test subnet names.
+
+provider "azurerm" {
+  version                    = ">=2.37.0"
+  skip_provider_registration = "true"
+  features {}
+}
 
 data "azurerm_subnet" "mgmt_plane" {
   name                 = "stcv-mgmt"
@@ -14,15 +21,19 @@ data "azurerm_subnet" "test_plane" {
 
 module "stcv" {
   source                    = "../.."
-  
   instance_count            = 2
   resource_group_location   = "West US 2"
   virtual_network           = "STCv"
-  mgmt_plane_subnet         = data.azurerm_subnet.mgmt_plane.id
-  test_plane_subnet         = data.azurerm_subnet.test_plane.id
-  ingress_cidr_blocks       = ["0.0.0.0/0"]
-  user_data_file            = "../../cloud-init.yaml"
+  mgmt_plane_subnet_name    = "stcv-mgmt"
+  test_plane_subnet_name    = "stcv-test"
+  mgmt_plane_subnet_id      = data.azurerm_subnet.mgmt_plane.id
+  test_plane_subnet_id      = data.azurerm_subnet.test_plane.id
   marketplace_version       = "5.15.0106"
+  user_data_file            = "../../cloud-init.yaml"
+  public_key                = "~/.ssh/id_rsa.pub"
+  
+  # Warning: Using all address cidr block to simplify the example. You should restrict addresses to your public network.
+  ingress_cidr_blocks       = ["0.0.0.0/0"]
 }
 
 output "instance_public_ips" {

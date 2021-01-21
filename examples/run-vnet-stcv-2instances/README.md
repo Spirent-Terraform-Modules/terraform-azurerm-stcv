@@ -1,6 +1,6 @@
 ## Description 
-This Terraform module deploys Spirent TestCenter Virtual Machines from an Azure Marketplace image.
-The example requires the user to provide an already existing virtual network , management subnet, test subnet names.
+This Terraform module creates a new virtual network in the same location as the Resource group provided by user, with the user specified vnet address space and subnet CIDRs. 
+The example uses this virtual network and subnets to deploy Spirent TestCenter Virtual Machines from an Azure Marketplace image.
 It deploys Spirent TestCenter Virtual traffic generator instances with public and test networks.
 Instances can be controlled by the Spirent TestCenter application.
 
