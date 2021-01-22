@@ -7,6 +7,10 @@ provider "azurerm" {
   features {}
 }
 
+data "azurerm_resource_group" "rg_stcv" {
+  name                = "default"
+}
+
 module "vnet" {
   source              = "Azure/vnet/azurerm"
   vnet_name           = "stcv-vnet"
@@ -19,8 +23,8 @@ module "vnet" {
 module "stcv" {
   source                    = "../.."
   instance_count            = 2
-  resource_group_location   = "West US"
   marketplace_version       = "5.15.0106"
+  resource_group_location   = data.azurerm_resource_group.rg_stcv.location
   mgmt_plane_subnet_id      = "${module.vnet.vnet_subnets[0]}"
   test_plane_subnet_id      = "${module.vnet.vnet_subnets[1]}"
   user_data_file            = "../../cloud-init.yaml"

@@ -52,8 +52,8 @@ resource "azurerm_network_security_group" "mgmt_plane" {
     source_address_prefixes    = var.ingress_cidr_blocks
     destination_address_prefix = "*"
   }
-  
-   security_rule {
+
+  security_rule {
     name                       = "bll-ephemeral"
     description                = "All outbound traffic back to BLL"
     priority                   = 101
@@ -137,10 +137,6 @@ resource "azurerm_network_interface_security_group_association" "test_plane" {
   count                     = var.instance_count
   network_interface_id      = "${element(azurerm_network_interface.test_plane.*.id, count.index)}"
   network_security_group_id = azurerm_network_security_group.test_plane.id
-}
-
-data "template_file" "user_data" {
-  template = file(var.user_data_file)
 }
 
 # Create STCv VMs
