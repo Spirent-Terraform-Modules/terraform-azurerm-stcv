@@ -1,4 +1,4 @@
-## Example: This example creates a new virtual network in the same location as the Resource group , with the specified address space and subnet CIDRs. 
+## Example: This example creates a new virtual network in the same location as the Resource group , with the specified address space and subnet CIDRs.
 # The example uses this virtual network and subnets to deploys a Spirent TestCenter Virtual Machine from an Azure Marketplace image.
 
 provider "azurerm" {
@@ -29,9 +29,9 @@ module "stcv" {
   test_plane_subnet_id      = "${module.vnet.vnet_subnets[1]}"
   user_data_file            = "../../cloud-init.yaml"
   public_key                = "~/.ssh/id_rsa.pub"
-  
+
   # Warning: Using all address cidr block to simplify the example. You should restrict addresses to your public network.
-  ingress_cidr_blocks       = ["0.0.0.0/0"] 
+  ingress_cidr_blocks       = ["0.0.0.0/0"]
 }
 
 output "instance_public_ips" {
