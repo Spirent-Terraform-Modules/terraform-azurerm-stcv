@@ -32,7 +32,7 @@ variable "resource_group_location" {
 
 variable "enable_accelerated_networking" {
   description = "Enable or disable accelerated networking on the network interface."
-  type        = boolean
+  type        = bool
   default     = "true"
 }
 
