@@ -79,3 +79,23 @@ variable "user_data_file" {
   description = "Path to the file containing user data for the instance. See README for Spirent TestCenter Virtual cloud-init configuration parameters that are supported."
   type        = string
 }
+
+
+
+variable "private_key_file" {
+  description = "File path to private key"
+  type        = string
+}
+
+variable "enable_provisioner" {
+  description = "Enable provisioning.  When enabled instances will be initialized with the specified variables."
+  type        = bool
+  default     = true
+}
+
+variable "dest_dir" {
+  description = "Destination directory on the instance where provisining files will be copied"
+  type        = string
+  default     = "~"
+}
+

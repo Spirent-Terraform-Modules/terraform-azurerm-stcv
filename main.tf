@@ -30,6 +30,30 @@ resource "azurerm_network_security_group" "mgmt_plane" {
   }
 
   security_rule {
+    name                       = "http"
+    priority                   = 101
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefixes    = var.ingress_cidr_blocks
+    destination_address_prefix = "*"
+  }
+  
+  security_rule {
+    name                       = "https"
+    priority                   = 102
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefixes    = var.ingress_cidr_blocks
+    destination_address_prefix = "*"
+  }
+  
+  security_rule {
     name                       = "stc-chassis"
     priority                   = 110
     direction                  = "Inbound"
@@ -139,6 +163,11 @@ resource "azurerm_network_interface_security_group_association" "test_plane" {
   network_security_group_id = azurerm_network_security_group.test_plane.id
 }
 
+data "azurerm_image" "aion" {
+  name                = "AION"
+  resource_group_name = var.resource_group_name
+}
+
 # Create STCv VMs
 resource "azurerm_linux_virtual_machine" "stcv" {
   count                 = var.instance_count
@@ -154,13 +183,13 @@ resource "azurerm_linux_virtual_machine" "stcv" {
     public_key = file(var.public_key)
   }
 
-  custom_data = base64encode(file(var.user_data_file))
+  # custom_data = base64encode(file(var.user_data_file))
 
-  plan {
-    name      = "testcentervirtual"
-    publisher = "spirentcommunications1594084187199"
-    product   = "testcenter_virtual"
-  }
+  # plan {
+  #   name      = "testcentervirtual"
+  #   publisher = "spirentcommunications1594084187199"
+  #   product   = "testcenter_virtual"
+  # }
 
   os_disk {
     name                 = "osdisk-${var.instance_name}-${count.index}"
@@ -168,13 +197,46 @@ resource "azurerm_linux_virtual_machine" "stcv" {
     storage_account_type = "Standard_LRS"
   }
 
-  source_image_reference {
-    publisher = "spirentcommunications1594084187199"
-    offer     = "testcenter_virtual"
-    sku       = "testcentervirtual"
-    version   = var.marketplace_version != "" ? var.marketplace_version : "latest"
-  }
+  # source_image_reference {
+  #   publisher = "spirentcommunications1594084187199"
+  #   offer     = "testcenter_virtual"
+  #   sku       = "testcentervirtual"
+  #   version   = var.marketplace_version != "" ? var.marketplace_version : "latest"
+  # }
+
+  source_image_id = data.azurerm_image.aion.id
 }
 
+# provison the AION VM
+resource "null_resource" "provisioner" {
+  count = var.enable_provisioner ? var.instance_count : 0
+  connection {
+    host        = azurerm_linux_virtual_machine.stcv[count.index].public_ip_address
+    type        = "ssh"
+    user        = var.admin_username
+    private_key = file(var.private_key_file)
+  }
 
+  # force provisioners to rerun
+  # triggers = {
+  #   always_run = "${timestamp()}"
+  # }
 
+  # copy install script
+  provisioner "file" {
+    source      = "${path.module}/cloud-init.yaml"
+    destination = "${var.dest_dir}/cloud-init.yaml"
+  }
+
+  # provisioner "file" {
+  #  content     = data.template_file.setup_aion[count.index].rendered
+  #   destination = "${var.dest_dir}/setup-aion.sh"
+  # }
+
+  # run setup AION
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "bash ${var.dest_dir}/setup-aion.sh"
+  #   ]
+  # }
+}
