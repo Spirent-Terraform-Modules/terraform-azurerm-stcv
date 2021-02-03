@@ -30,7 +30,7 @@ module "stcv" {
   user_data_file          = "../../cloud-init.yaml"
   public_key              = "~/.ssh/id_rsa.pub"
 
-  # Warning: Using all adddress cidr block to simplify the example. You should limit instance access.
+  # Warning: Using all address cidr block to simplify the example. You should limit instance access.
   ingress_cidr_blocks = ["0.0.0.0/0"]
 }
 
