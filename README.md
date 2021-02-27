@@ -2,7 +2,6 @@
 
 ## Description
 Run [STCv](https://www.spirent.com/products/testcenter-virtual-ethernet-ip-testing) traffic generator instances with public and test networks.
->>>>>>> Stashed changes
 
 Instances can be controlled by the [Spirent TestCenter application](https://github.com/Spirent-terraform-Modules/terraform-azurerm-stc-gui).
 
